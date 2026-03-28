@@ -1,10 +1,7 @@
-// ✅ FIXED: Backend runs on port 5000
-const BACKEND_PORT = 5000;
-const BACKEND_ORIGIN = `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}`;
-const API_BASE_URL = BACKEND_ORIGIN + '/api';
+const API_BASE_URL = "https://vitalsense-backend-uoqz.onrender.com/api";
 
 // Optional: simple console log instead of forcing redirect
-console.log(`Frontend running on port ${window.location.port}, backend on ${BACKEND_PORT}`);
+console.log("Using backend:", API_BASE_URL);
 
 // Safe JSON parser — prevents "Unexpected token <" when server returns HTML
 async function safeJson(response) {
