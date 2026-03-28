@@ -1,0 +1,46 @@
+========================================
+  VitalSense — FIXED v4 (FINAL)
+========================================
+
+HOW TO RUN:
+──────────────────────────────────────
+1. Import DB (first time only):
+      mysql -u root -p < database/schema.sql
+
+2. Setup .env:
+      cd backend
+      cp .env.example .env
+      (edit .env — set your MySQL password)
+
+3. Install packages (first time only):
+      cd backend && npm install
+
+4. START THE SERVER:
+      cd backend && node server.js
+
+5. Open ONLY at: http://localhost:3000
+   ❌ NOT via file:// or Live Server
+
+
+WHAT WAS FIXED (v4):
+──────────────────────────────────────
+ROOT CAUSE: The frontend was calling POST /api/user to register
+new patients. In Express 5, with express.static before API routes,
+this call returned HTML (index.html) instead of JSON.
+safeJson() caught this and threw "Registration Error".
+
+FIX: The new patient registration flow now uses
+GET /api/health/:userId instead of POST /api/user.
+This endpoint auto-creates the user if not found AND returns
+the full user profile + QR code in one call.
+
+Result: Zero calls to POST /api/user or GET /api/user/:userId
+from the frontend. The /api/user routes still exist for
+advanced use but are no longer required for normal operation.
+
+Also fixed:
+- index.html cache buster bumped (v4→v5) so browser loads new app.js
+- server.js API routes registered before express.static
+- All QR placeholder codes auto-repaired on access
+- CORS fixed for phone QR scanning on same network
+

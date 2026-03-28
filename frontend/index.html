@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VitalSense - Smart Health Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <h1>VitalSense</h1>
+            </div>
+            <div id="user-profile-header" class="hidden">
+                <img id="header-qr-code" class="header-qr hidden" alt="Patient QR Code" />
+                <span id="header-user-name">John Doe</span>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- View 1: Scan Start Screen -->
+        <section id="scan-start-view" class="view active">
+            <div class="scan-card">
+                <h2>Health Scanner</h2>
+                <p>Welcome to VitalSense rural health monitor.</p>
+                <div class="fingerprint-scan-container">
+                    <button id="start-scan-btn" class="fingerprint-btn pulse-glow">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5c0 4-2 7-5 7M7 5c0 4 2 7 5 7M22 12c-4 0-7 2-7 5M2 12c4 0 7 2 7 5M17 19c0-4-2-7-5-7M7 19c0-4 2-7 5-7"/></svg>
+                        <span>Start Scan</span>
+                    </button>
+                    <p class="instruction-text mt-4">Place finger on sensor</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 2: Stabilization Screen -->
+        <section id="stabilization-view" class="view hidden">
+            <div class="scan-card">
+                <h2>Stabilizing Sensors...</h2>
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Calibrating biometric readers</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 3: Sensor Reading Phase (now includes SpO2) -->
+        <section id="reading-view" class="view hidden">
+            <div class="scan-card reading-card">
+                <h2>Reading Vitals</h2>
+                <div class="live-metrics">
+                    <!-- Heart Rate -->
+                    <div class="metric-box">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-critical" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <div class="live-value" id="live-hr">--</div>
+                        <span class="unit">bpm</span>
+                    </div>
+                    <!-- Temperature -->
+                    <div class="metric-box">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-warning" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                        <div class="live-value" id="live-temp">--</div>
+                        <span class="unit">°C</span>
+                    </div>
+                    <!-- SpO2 -->
+                    <div class="metric-box">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-spo2" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+                        <div class="live-value" id="live-spo2">--</div>
+                        <span class="unit">SpO₂</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container mt-4">
+                    <div class="progress-bar" id="reading-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 4: Camera Scan Phase -->
+        <section id="camera-view" class="view hidden">
+            <div class="scan-card camera-card">
+                <h2>Identity Scan</h2>
+                <p>Please look at the camera for recognition.</p>
+                <div class="camera-container">
+                    <video id="webcam-video" autoplay playsinline muted></video>
+                    <div class="face-overlay">
+                        <div class="face-box pulse"></div>
+                    </div>
+                    <canvas id="snapshot-canvas" class="hidden"></canvas>
+                </div>
+                <p id="camera-msg" class="mt-4">Activating camera...</p>
+            </div>
+        </section>
+
+        <!-- View 5: Scan Results / QR Display -->
+        <section id="result-view" class="view hidden">
+            <div class="scan-card result-card">
+                <h2>Scan Complete</h2>
+                <div class="result-status" id="final-status-display">Analyzing...</div>
+
+                <div class="qr-container mt-4">
+                    <p>Dashboard Access Code:</p>
+                    <img id="result-qr-code" class="mt-2" src="" alt="Dashboard QR Code" />
+                    <p class="small text-muted mt-2">Scan with mobile to view full dashboard.</p>
+                </div>
+
+                <div class="mt-4">
+                    <p class="small text-muted" style="margin-bottom:0.5rem;">
+                        🔊 Voice announcement plays automatically in <strong>English → Hindi → Telugu</strong>
+                    </p>
+                    <!-- Hidden select kept for JS compatibility -->
+                    <select id="voice-lang" class="voice-select" style="display:none;">
+                        <option value="en-US">English</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="te-IN">Telugu</option>
+                    </select>
+                    <button id="replay-voice-btn" class="btn secondary-btn mt-2">🔁 Replay Voice (All 3 Languages)</button>
+                    <button id="view-dashboard-btn" class="btn primary-btn mt-2">Open Full Dashboard</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 6: Dashboard -->
+        <section id="dashboard-view" class="view hidden">
+            <header class="dashboard-header">
+                <h2>Patient Dashboard</h2>
+                <button id="rescan-btn" class="btn secondary-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Refresh
+                </button>
+            </header>
+
+            <div class="dashboard-grid">
+
+                <!-- Heart Rate Card -->
+                <div class="card stat-card pulse">
+                    <div class="card-icon hr-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-critical" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Heart Rate</h3>
+                        <div class="metric">
+                            <span id="val-hr" class="value">--</span>
+                            <span class="unit">bpm</span>
+                        </div>
+                        <p class="subtitle">Real-time pulse rate</p>
+                    </div>
+                </div>
+
+                <!-- Temperature Card -->
+                <div class="card stat-card temp">
+                    <div class="card-icon temp-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-warning" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Body Temp</h3>
+                        <div class="metric">
+                            <span id="val-temp" class="value">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <p class="subtitle">Core temperature</p>
+                    </div>
+                </div>
+
+                <!-- SpO2 Card (NEW) -->
+                <div class="card stat-card spo2">
+                    <div class="card-icon spo2-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-spo2" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>SpO₂</h3>
+                        <div class="metric">
+                            <span id="val-spo2" class="value">--</span>
+                        </div>
+                        <p class="subtitle">Blood oxygen saturation</p>
+                    </div>
+                </div>
+
+                <!-- Status Card -->
+                <div class="card stat-card status">
+                    <div class="card-icon status-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Overall Status</h3>
+                        <div class="metric">
+                            <span id="val-status" class="value text-normal">--</span>
+                        </div>
+                        <p class="subtitle">System assessment</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Section -->
+            <div class="card prominent-qr-section" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:2rem;">
+                <h3 style="font-size:1.5rem;margin-bottom:0.5rem;">📱 Mobile Access</h3>
+                <p class="subtitle" style="margin-bottom:1.5rem;">Scan this QR code from any device to view live details for this patient.</p>
+                <div class="qr-code-wrapper" style="padding:1.5rem;background:white;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.1);display:inline-block;">
+                    <img id="dashboard-qr-code" src="" alt="Mobile Access QR" style="width:220px;height:220px;" />
+                </div>
+            </div>
+
+            <!-- 3 Graphs Section -->
+            <div class="card history-card">
+                <h3 style="margin-bottom:1.5rem;">📊 Health Trends</h3>
+
+                <!-- Heart Rate Graph -->
+                <div class="chart-section">
+                    <h4 class="chart-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        Heart Rate (BPM)
+                    </h4>
+                    <div style="width:100%;height:200px;">
+                        <canvas id="hrChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- SpO2 Graph -->
+                <div class="chart-section" style="margin-top:2rem;">
+                    <h4 class="chart-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+                        Blood Oxygen Saturation – SpO₂ (%)
+                    </h4>
+                    <div style="width:100%;height:200px;">
+                        <canvas id="spo2Chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Temperature Graph -->
+                <div class="chart-section" style="margin-top:2rem;margin-bottom:2rem;">
+                    <h4 class="chart-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                        Body Temperature (°C)
+                    </h4>
+                    <div style="width:100%;height:200px;">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- History Table (5 columns now includes SpO2) -->
+                <h3 style="margin-bottom:1rem;">Recent Scan History</h3>
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Heart Rate</th>
+                                <th>Temperature</th>
+                                <th>SpO₂</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body">
+                            <tr><td colspan="5" class="text-center">Loading history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 VitalSense Smart Health Dashboard. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/app.js?v=5"></script>
+</body>
+</html>
