@@ -90,6 +90,117 @@ router.post('/', async (req, res) => {
     }
 });
 
+// ── POST /api/user/recognize ──────────────────────────────────────
+// Face recognition: accepts face embedding and searches for matching users
+router.post('/recognize', async (req, res) => {
+    try {
+        const { embedding } = req.body;
+
+        if (!embedding || !Array.isArray(embedding) || embedding.length !== 128) {
+            return res.status(400).json({ error: 'Invalid embedding. Expected 128-dimensional array.' });
+        }
+
+        // Get all users with stored face embeddings
+        const [users] = await db.query(
+            'SELECT userId, name, face_embedding FROM users WHERE face_embedding IS NOT NULL'
+        );
+
+        if (users.length === 0) {
+            console.log("No users with face embeddings found");
+            return res.json({ userId: null, confidence: 0, message: 'No registered faces in database' });
+        }
+
+        // Find the best match using Euclidean distance
+        let bestMatch = null;
+        let minDistance = Infinity;
+        const threshold = 0.6;  // Face-api.js typical threshold
+
+        for (const user of users) {
+            try {
+                const storedEmbedding = JSON.parse(user.face_embedding);
+                const distance = calculateEuclideanDistance(embedding, storedEmbedding);
+
+                console.log(`Distance to ${user.userId}: ${distance.toFixed(4)}`);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestMatch = { userId: user.userId, name: user.name, distance };
+                }
+            } catch (parseErr) {
+                console.error(`Failed to parse embedding for user ${user.userId}:`, parseErr);
+            }
+        }
+
+        if (bestMatch && minDistance < threshold) {
+            console.log(`✅ Face match found! User: ${bestMatch.userId}, Distance: ${minDistance.toFixed(4)}`);
+            res.json({
+                userId: bestMatch.userId,
+                name: bestMatch.name,
+                confidence: (1 - (minDistance / threshold)) * 100,  // Confidence percentage
+                distance: minDistance
+            });
+        } else {
+            console.log(`No face match found. Best distance: ${minDistance.toFixed(4)}`);
+            res.json({
+                userId: null,
+                confidence: 0,
+                bestDistance: minDistance,
+                message: 'No matching face found'
+            });
+        }
+    } catch (err) {
+        console.error('POST /api/user/recognize error:', err);
+        res.status(500).json({ error: 'Face recognition failed' });
+    }
+});
+
+// ── POST /api/user/store-embedding ────────────────────────────────
+// Store face embedding for a user (called when new user registers)
+router.post('/store-embedding', async (req, res) => {
+    try {
+        const { userId, embedding } = req.body;
+
+        if (!userId || !embedding || !Array.isArray(embedding) || embedding.length !== 128) {
+            return res.status(400).json({ error: 'Invalid userId or embedding' });
+        }
+
+        // Store embedding as JSON in database
+        const embeddingJson = JSON.stringify(embedding);
+
+        const [result] = await db.query(
+            'UPDATE users SET face_embedding = ? WHERE userId = ?',
+            [embeddingJson, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log(`✅ Face embedding stored for user: ${userId}`);
+        res.json({ success: true, message: 'Face embedding stored successfully' });
+    } catch (err) {
+        console.error('POST /api/user/store-embedding error:', err);
+        res.status(500).json({ error: 'Failed to store face embedding' });
+    }
+});
+
+// Helper function: Calculate Euclidean distance between two embeddings
+function calculateEuclideanDistance(embedding1, embedding2) {
+    if (!Array.isArray(embedding1) || !Array.isArray(embedding2)) {
+        throw new Error('Both inputs must be arrays');
+    }
+    if (embedding1.length !== embedding2.length) {
+        throw new Error('Embeddings must have the same length');
+    }
+
+    let sum = 0;
+    for (let i = 0; i < embedding1.length; i++) {
+        const diff = embedding1[i] - embedding2[i];
+        sum += diff * diff;
+    }
+    return Math.sqrt(sum);
+}
+
 // ── GET /api/user/:userId ─────────────────────────────────────────
 // Get user profile and QR code. Auto-repairs placeholder QR codes.
 router.get('/:userId', async (req, res) => {

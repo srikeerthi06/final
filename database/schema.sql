@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     username VARCHAR(100) UNIQUE,
     password VARCHAR(255),
+    face_embedding LONGBLOB,  -- Store 128-dimensional face descriptor as JSON
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

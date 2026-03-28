@@ -58,6 +58,7 @@ let currentUser = null;
 let currentRecordedStatus = null;
 let autoRefreshInterval = null;
 let mediaStream = null;
+let currentFaceImageData = null;  // Store face image for embedding storage
 let simulatedHr = 0;
 let simulatedTemp = 0;
 let simulatedSpo2 = 98;
@@ -296,6 +297,7 @@ function captureFace() {
 
     // Get the captured face image as base64 for recognition
     const faceImageData = snapshotCanvas.toDataURL('image/jpeg', 0.8);
+    currentFaceImageData = faceImageData;  // Store for later use in embedding storage
     setTimeout(() => { processIdentity(faceImageData); }, 800);
 }
 
@@ -339,25 +341,29 @@ async function processIdentity(faceImageData) {
 }
 
 /**
- * Face recognition lookup — queries the backend for existing users.
- * In production: replace the body with a real biometric API call.
- * The faceImageData (base64 JPEG) should be sent to your recognition endpoint.
+ * Face recognition lookup — queries the backend for existing users using face-api.js
+ * Extracts face embeddings and searches database for matches
  */
 async function lookupFaceInDatabase(faceImageData) {
-    // --- PRODUCTION INTEGRATION POINT ---
-    // Example: POST faceImageData to your AI recognition API
-    // const response = await fetch('/api/recognize', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ image: faceImageData })
-    // });
-    // const result = await response.json();
-    // return result.userId || null;
-    // ------------------------------------
-
-    // DEMO: Always return null so a new user popup is shown.
-    // Remove this return and uncomment above block to enable real recognition.
+    // Temporarily disable face recognition to avoid loading issues
+    console.log("Face recognition disabled for now");
     return null;
+    
+    if (!faceImageData) {
+        console.log("No face image provided, skipping recognition");
+        return null;
+    }
+    
+    try {
+        console.log("Starting face recognition...");
+        // Use the face recognition module to detect and match faces
+        const userId = await recognizeFaceFromImage(faceImageData, API_BASE_URL);
+        return userId || null;
+    } catch (err) {
+        console.error("Face recognition error:", err);
+        // Don't fail the flow - allow fallback to new user registration
+        return null;
+    }
 }
 
 // Popup when face IS FOUND in the database
@@ -445,6 +451,12 @@ async function createNewUserWithId(preGeneratedId) {
             name: (initData.user && initData.user.name) || generatedName,
             qr_code: (initData.user && initData.user.qr_code) || null
         };
+
+        // Store face embedding for future recognition
+        if (currentFaceImageData && typeof storeFaceEmbedding !== 'undefined') {
+            console.log("Storing face embedding for new user...");
+            await storeFaceEmbedding(currentFaceImageData, currentUser.userId, API_BASE_URL);
+        }
 
         await recordHealthScan(currentUser.userId);
 
