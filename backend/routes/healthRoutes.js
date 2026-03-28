@@ -61,7 +61,7 @@ router.get('/:userId', async (req, res) => {
         const { userId } = req.params;
 
         const host = req.headers['x-forwarded-host'] || req.get('host');
-        const baseUrl = `${req.protocol}://${host}`;
+        const baseUrl = "https://69c7c2e731c80ca6905f9b38--iridescent-pika-b7e89b.netlify.app";
 
         // Get user
         const [users] = await db.query(
